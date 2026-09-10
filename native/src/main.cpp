@@ -111,8 +111,8 @@ void FitChartToViewport(HWND hwnd) {
   g_center_lon = (e.east + e.west) * 0.5;
   const double lat_span = std::max(0.0001, e.north - e.south);
   const double lon_span = std::max(0.0001, (e.east - e.west) * std::cos(g_center_lat * kPi / 180.0));
-  const double usable_w = std::max(100, rc.right - kSidebar - kRightPanel - 40);
-  const double usable_h = std::max(100, rc.bottom - kTopbar - kBottom - 40);
+  const double usable_w = std::max(100.0, static_cast<double>(rc.right - kSidebar - kRightPanel - 40));
+  const double usable_h = std::max(100.0, static_cast<double>(rc.bottom - kTopbar - kBottom - 40));
   g_zoom = std::min(usable_w / lon_span, usable_h / lat_span);
   g_zoom = std::clamp(g_zoom, 200.0, 500000.0);
 }
