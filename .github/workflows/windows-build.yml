@@ -41,21 +41,47 @@ jobs:
           cd build-estibordo
           cmake -A Win32 -G "Visual Studio 17 2022" -DCMAKE_GENERATOR_PLATFORM=Win32 -DCMAKE_BUILD_TYPE=Release -DwxWidgets_LIB_DIR=%wxWidgets_LIB_DIR% -DwxWidgets_ROOT_DIR=%wxWidgets_ROOT_DIR% -DwxWidgets_CONFIGURATION=mswu -DOCPN_TARGET_TUPLE=msvc-wx32;10;x86_64 -DOCPN_CI_BUILD=ON -DOCPN_BUNDLE_WXDLLS=ON -DOCPN_RELEASE=0 -DOCPN_BUILD_TEST=OFF ..
 
-      - name: Build installer
+      - name: Build application
         shell: cmd
         working-directory: workspace\OpenCPN\build-estibordo
         run: |
-          cmake --build . --target package --config Release
+          cmake --build . --config Release --parallel
+
+      - name: Build portable package
+        shell: cmd
+        working-directory: workspace\OpenCPN\build-estibordo
+        run: |
+          cpack -C Release -G ZIP
+
+      - name: Try NSIS installer
+        continue-on-error: true
+        shell: cmd
+        working-directory: workspace\OpenCPN\build-estibordo
+        run: |
+          cpack -C Release -G NSIS
 
       - name: Collect distributables
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path dist | Out-Null
-          Get-ChildItem -Path workspace\OpenCPN\build-estibordo -Recurse -File |
+          Get-ChildItem -Path workspace\OpenCPN\build-estibordo -File |
             Where-Object { $_.Extension -in '.exe','.msi','.zip' } |
             Copy-Item -Destination dist -Force
+          $releaseExe = Get-ChildItem -Path workspace\OpenCPN\build-estibordo -Recurse -Filter opencpn.exe -File | Select-Object -First 1
+          if (-not $releaseExe) { throw "opencpn.exe nao foi gerado." }
+          Copy-Item $releaseExe.FullName dist\Estibordo-Navigator.exe -Force
           Copy-Item workspace\OpenCPN\ESTIBORDO-NOTICE.txt dist -Force
           Compress-Archive -Path dist\* -DestinationPath Estibordo-Navigator-Windows.zip -Force
+
+      - name: Preserve NSIS diagnostics
+        if: always()
+        shell: pwsh
+        run: |
+          $log = Get-ChildItem -Path workspace\OpenCPN\build-estibordo -Recurse -Filter NSISOutput.log -File -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($log) {
+            New-Item -ItemType Directory -Force -Path diagnostics | Out-Null
+            Copy-Item $log.FullName diagnostics\NSISOutput.log -Force
+          }
 
       - name: Upload Windows package
         uses: actions/upload-artifact@v4
