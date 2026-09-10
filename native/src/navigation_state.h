@@ -24,6 +24,7 @@ class NavigationState {
 
   void AddWaypoint(double lat, double lon);
   void ClearRoute();
+  void ReplaceRoute(const std::vector<NavPoint>& points);
   std::vector<NavPoint> Route() const;
 
  private:
