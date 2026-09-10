@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "note": "Metadata/checksums only. Proprietary chart bytes are not committed.",
+  "charts": [
+    {"filename":"1U792XL.nv2","size":6156876,"sha256":"34444258f99b16896b6b8f38d784c60e3cd6e45bf8362e66ac3e481d122732b4","chart_id":"1U792T12","title":"SANDIEGO-CARMENBASIN","vendor":"Navionics","bbox":[-128.836639,7.157387,-90.789519,41.148188]},
+    {"filename":"1U794XL.nv2","size":3337492,"sha256":"4b9293aabfe7663194452ad5909f62af0dad0a88d9bfbea5c0b1d254fac3821a","chart_id":"1U794T12","title":"ISLA SIARI-TEACAPAN","vendor":"Navionics","bbox":[-128.836639,7.157387,-90.789519,41.148188]},
+    {"filename":"3U111XL.nv2","size":16908688,"sha256":"8ea06017da9ca12123c40376006b1fb33a5e787e96546bf48fcd4f8d4e56de6b","chart_id":"3U111T12","title":"DOM REPUBLIC-GRENADA","vendor":"Navionics","bbox":[-72.502838,10.928302,-54.416589,27.907622]},
+    {"filename":"3U138XL.nv2","size":17937373,"sha256":"1f0a699e264feafacd1abe2bc29803b45e8e48be1497c9fddd9afc7d78669e92","chart_id":"3U138T12","title":"PANAMA TO VENEZUELA","vendor":"Navionics","bbox":[-85.071895,2.274969,-67.738290,19.237205]},
+    {"filename":"6U034XL.nv2","size":11498347,"sha256":"5fa482679ea5548f59774178f39b78723393ec587a6ab97cd12a1b24f3a6dea7","chart_id":"6U034T12","title":"SOUTH WEST AFRICA","vendor":"Navionics","bbox":[-14.987717,-56.033859,65.036976,11.977501]},
+    {"filename":"6U044S.nv2","size":1684112,"sha256":"856ae38e1d492912f58cb9a697940d87159f1eb7b923d84da0f5a8eb40203693","chart_id":"6U044T32","title":"LAKE KARIBA","vendor":"Navionics","bbox":[23.429599,-21.292120,32.316407,-12.805055]},
+    {"filename":"8U133XL.nv2","size":12583036,"sha256":"3a0abc0a1cc8bcf7f76c1f89b452b2b5d4f274acb614ae6473d5fc5f55f89ea6","chart_id":"8U133T12","title":"MELBOURNE/TASMANIA","vendor":"Navionics","bbox":[136.385263,-46.647551,158.229281,-29.606518]},
+    {"filename":"8U140XL.nv2","size":16708396,"sha256":"c95c0dfc61831931e935ec2cc768776979fff38126a9bd28061fcbcf82d9b1f6","chart_id":"8U140T12","title":"PERTH TO MELBOURNE","vendor":"Navionics","bbox":[108.287272,-52.827312,151.625289,-18.760442]},
+    {"filename":"8U167XL.nv2","size":10559665,"sha256":"93ea712b66743ffb9dd80a5e7c0209b9c8c5f33709102e97a37189063ab1fe80","chart_id":"8U167T12","title":"FIJI AND TONGA IS.","vendor":"Navionics","bbox":[-179.936252,-25.621418,179.849269,-8.646853]},
+    {"filename":"8U168XL.nv2","size":17540928,"sha256":"ddb2240719f02f858b543b4bc47fd74a4c9b665bdf814476be740f1b29dd6aaf","chart_id":"8U168T12","title":"PACIFIC ISLANDS SE","vendor":"Navionics","bbox":[-178.640091,-34.769595,-118.939648,33.141185]},
+    {"filename":"8U170S.nv2","size":263913,"sha256":"263a594ce470e9433e0e8595b102ad00c88c63d90cbe37367f64df01cd22373d","chart_id":"8U170T32","title":"NORFOLK ISLAND","vendor":"Navionics","bbox":[163.430041,-33.837738,173.225460,-25.332270]}
+  ]
+}
