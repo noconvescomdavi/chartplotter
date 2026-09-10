@@ -2,11 +2,11 @@
 #include <atomic>
 #include <thread>
 
-class NavigationState;
+class NavigationState;\nclass AisStore;
 
 class UdpNmeaReceiver {
  public:
-  explicit UdpNmeaReceiver(NavigationState& state);
+  UdpNmeaReceiver(NavigationState& state, AisStore& ais);
   ~UdpNmeaReceiver();
 
   bool Start(unsigned short port = 10110);
@@ -15,7 +15,7 @@ class UdpNmeaReceiver {
  private:
   void Run(unsigned short port);
 
-  NavigationState& state_;
+  NavigationState& state_;\n  AisStore& ais_;
   std::atomic_bool running_{false};
   std::thread thread_;
 };
