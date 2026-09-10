@@ -1,0 +1,73 @@
+name: Windows Runtime Smoke Test
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/windows-smoke-test.yml'
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download successful Windows artifact
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download 34431458390 --repo noconvescomdavi/chartplotter --name Estibordo-Navigator-Windows --dir artifact
+
+      - name: Extract portable package
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem artifact -Recurse -Filter "opencpn_*_setup.zip" | Select-Object -First 1
+          if (-not $setup) { throw "Portable setup ZIP not found." }
+          Expand-Archive $setup.FullName -DestinationPath runtime -Force
+          $exe = Get-ChildItem runtime -Recurse -Filter opencpn.exe | Select-Object -First 1
+          if (-not $exe) { throw "opencpn.exe not found in portable package." }
+          "OCPN_EXE=$($exe.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Validate PE and runtime dependencies
+        shell: pwsh
+        run: |
+          if (-not (Test-Path $env:OCPN_EXE)) { throw "Executable missing." }
+          $dir = Split-Path $env:OCPN_EXE
+          $required = @("wxbase32u_vc14x.dll","wxmsw32u_core_vc14x.dll")
+          foreach ($dll in $required) {
+            if (-not (Get-ChildItem $dir -Filter $dll -ErrorAction SilentlyContinue)) {
+              throw "Required runtime DLL missing: $dll"
+            }
+          }
+          Write-Host "Executable and wxWidgets runtime are present."
+
+      - name: Smoke launch --help
+        shell: pwsh
+        run: |
+          $psi = New-Object System.Diagnostics.ProcessStartInfo
+          $psi.FileName = $env:OCPN_EXE
+          $psi.Arguments = "--help"
+          $psi.WorkingDirectory = Split-Path $env:OCPN_EXE
+          $psi.UseShellExecute = $false
+          $psi.RedirectStandardOutput = $true
+          $psi.RedirectStandardError = $true
+          $p = New-Object System.Diagnostics.Process
+          $p.StartInfo = $psi
+          [void]$p.Start()
+          if (-not $p.WaitForExit(20000)) {
+            $p.Kill()
+            throw "Runtime smoke test timed out."
+          }
+          Write-Host $p.StandardOutput.ReadToEnd()
+          Write-Host $p.StandardError.ReadToEnd()
+          if ($p.ExitCode -ne 0) {
+            throw "Runtime exited with code $($p.ExitCode)."
+          }
+          Write-Host "Runtime smoke test passed."
