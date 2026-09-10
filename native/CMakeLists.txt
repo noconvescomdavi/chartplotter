@@ -16,6 +16,7 @@ add_executable(EstibordoNavigator WIN32
   src/udp_nmea_receiver.cpp
   src/chart_provider.cpp
   src/kap_chart.cpp
+  src/ais.cpp
 )
 
 target_include_directories(EstibordoNavigator PRIVATE src)
