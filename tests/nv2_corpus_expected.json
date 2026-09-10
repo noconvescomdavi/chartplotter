@@ -1,0 +1,17 @@
+{
+  "magic": "0x00FE8050",
+  "format_signature": "0x081273AB",
+  "samples": [
+    {"name":"1U792XL.nv2","chart_id":"1U792T12","title":"SANDIEGO-CARMENBASIN"},
+    {"name":"1U794XL.nv2","chart_id":"1U794T12","title":"ISLA SIARI-TEACAPAN"},
+    {"name":"3U111XL.nv2","chart_id":"3U111T12","title":"DOM REPUBLIC-GRENADA"},
+    {"name":"3U138XL.nv2","chart_id":"3U138T12","title":"PANAMA TO VENEZUELA"},
+    {"name":"6U034XL.nv2","chart_id":"6U034T12","title":"SOUTH WEST AFRICA"},
+    {"name":"6U044S.nv2","chart_id":"6U044T32","title":"LAKE KARIBA"},
+    {"name":"8U133XL.nv2","chart_id":"8U133T12","title":"MELBOURNE/TASMANIA"},
+    {"name":"8U140XL.nv2","chart_id":"8U140T12","title":"PERTH TO MELBOURNE"},
+    {"name":"8U167XL.nv2","chart_id":"8U167T12","title":"FIJI AND TONGA IS."},
+    {"name":"8U168XL.nv2","chart_id":"8U168T12","title":"PACIFIC ISLANDS SE"},
+    {"name":"8U170S.nv2","chart_id":"8U170T32","title":"NORFOLK ISLAND"}
+  ]
+}
