@@ -1,6 +1,7 @@
 #include "udp_nmea_receiver.h"
 
-#include "navigation_state.h"\n#include "ais.h"
+#include "navigation_state.h"
+#include "ais.h"
 #include "nmea_parser.h"
 
 #include <winsock2.h>
@@ -60,7 +61,8 @@ void UdpNmeaReceiver::Run(unsigned short port) {
 
     size_t start = 0;
     while (start < packet.size()) {
-      size_t end = packet.find_first_of("\r\n", start);
+      size_t end = packet.find_first_of("\r
+", start);
       if (end == std::string::npos) end = packet.size();
       std::string_view line(packet.data() + start, end - start);
       if (!line.empty()) {
