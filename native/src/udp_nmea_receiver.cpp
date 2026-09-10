@@ -61,8 +61,7 @@ void UdpNmeaReceiver::Run(unsigned short port) {
 
     size_t start = 0;
     while (start < packet.size()) {
-      size_t end = packet.find_first_of("\r
-", start);
+      size_t end = packet.find_first_of("\\r\\n", start);
       if (end == std::string::npos) end = packet.size();
       std::string_view line(packet.data() + start, end - start);
       if (!line.empty()) {
