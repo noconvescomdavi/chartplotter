@@ -26,20 +26,16 @@ jobs:
           .\scripts\apply-customization.ps1
           .\scripts\apply-layout.ps1
 
-      - name: Install OpenCPN Windows dependencies
-        shell: cmd
-        working-directory: workspace\OpenCPN
+      - name: Prepare OpenCPN Windows dependencies
+        shell: pwsh
         run: |
-          call buildwin\win_deps.bat wx32
+          .\scripts\prepare-windows-deps.ps1
 
       - name: Configure
         shell: cmd
         working-directory: workspace\OpenCPN
         run: |
           call cache\wx-config.bat
-          set "PATH=%PATH%;%PROGRAMFILES%\Poedit\Gettexttools\bin;%PROGRAMFILES(X86)%\Poedit\Gettexttools\bin"
-          where msgmerge
-          where msgfmt
           if exist build-estibordo rmdir /s /q build-estibordo
           mkdir build-estibordo
           cd build-estibordo
@@ -77,7 +73,8 @@ jobs:
           Copy-Item samples\demo-route.gpx dist\Estibordo-Navigator-Portable\samples\demo-route.gpx -Force
           Copy-Item workspace\OpenCPN\ESTIBORDO-NOTICE.txt dist\Estibordo-Navigator-Portable\ESTIBORDO-NOTICE.txt -Force
           $installer = Get-ChildItem workspace\OpenCPN\build-estibordo -Filter "*.exe" -File | Where-Object { $_.Name -match 'setup|Setup' } | Select-Object -First 1
-          if ($installer) { Copy-Item $installer.FullName dist\Estibordo-Navigator-Setup.exe -Force }
+          if (-not $installer) { throw "NSIS installer nao gerado." }
+          Copy-Item $installer.FullName dist\Estibordo-Navigator-Setup.exe -Force
           Compress-Archive -Path dist\Estibordo-Navigator-Portable\* -DestinationPath dist\Estibordo-Navigator-Portable.zip -Force
 
       - name: Runtime smoke test
