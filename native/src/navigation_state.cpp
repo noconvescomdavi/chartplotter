@@ -29,7 +29,7 @@ void NavigationState::ClearRoute() {
   route_.clear();
 }
 
-std::vector<GeoPoint> NavigationState::Route() const {
+std::vector<NavPoint> NavigationState::Route() const {
   std::scoped_lock lock(mutex_);
   return route_;
 }
