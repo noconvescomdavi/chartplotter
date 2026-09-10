@@ -34,6 +34,15 @@ ReplaceLiteral $rc 'VALUE "CompanyName",      "OpenCPN.org\0"' ('VALUE "CompanyN
 ReplaceLiteral $rc 'VALUE "FileDescription",  "Chart Plotter and Navigator\0"' ('VALUE "FileDescription",  "' + $desc + '\0"')
 ReplaceLiteral $rc 'VALUE "ProductName",      "OpenCPN\0"' ('VALUE "ProductName",      "' + $product + '\0"')
 
+# Translation tooling is useful but is not required to compile/run the Windows
+# navigation core. Hosted runners occasionally lose Chocolatey availability;
+# keeping Gettext optional prevents a package-manager outage from blocking the
+# chartplotter build. Existing upstream translations remain bundled when present.
+$cmake = Join-Path $Core "CMakeLists.txt"
+$cmakeText = Get-Content $cmake -Raw
+$cmakeText = $cmakeText.Replace('find_package(Gettext REQUIRED)', 'find_package(Gettext)')
+Set-Content $cmake $cmakeText -Encoding UTF8
+
 $notice = @"
 $product
 
