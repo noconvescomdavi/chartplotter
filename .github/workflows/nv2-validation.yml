@@ -8,6 +8,7 @@ on:
       - 'plugins/estibordo_nv2_pi/**'
       - 'tools/nv2/**'
       - 'tests/make_nv2_synthetic_fixture.py'
+      - 'tests/nv2-corpus-manifest.json'
       - '.github/workflows/nv2-validation.yml'
 
 jobs:
@@ -32,14 +33,22 @@ jobs:
         run: |
           & .\build-nv2\Release\nv2probe.exe .\fixture-valid.nv2
           if ($LASTEXITCODE -ne 0) { throw "Valid NV2 fixture was rejected" }
+          $backendOut = & .\build-nv2\Release\nv2backendprobe.exe .\fixture-valid.nv2 | Out-String
+          Write-Host $backendOut
+          if ($LASTEXITCODE -ne 0 -or $backendOut -notmatch 'backend=LEGACY_STRUCTURAL') {
+            throw "Backend manager did not select validated legacy backend"
+          }
       - name: Validate fail-closed behavior
         shell: pwsh
         run: |
           $old = $ErrorActionPreference
           $ErrorActionPreference = 'Continue'
           & .\build-nv2\Release\nv2probe.exe .\fixture-corrupt.nv2
-          $code = $LASTEXITCODE
+          $code1 = $LASTEXITCODE
+          $backendOut = & .\build-nv2\Release\nv2backendprobe.exe .\fixture-corrupt.nv2 | Out-String
+          $code2 = $LASTEXITCODE
           $ErrorActionPreference = $old
-          if ($code -eq 0) { throw "Corrupt NV2 fixture was incorrectly accepted" }
-          Write-Host "Corrupt fixture correctly rejected with exit code $code."
+          Write-Host $backendOut
+          if ($code1 -eq 0 -or $code2 -eq 0) { throw "Corrupt NV2 fixture was incorrectly accepted" }
+          Write-Host "Corrupt fixture correctly rejected by parser and backend manager."
           exit 0
