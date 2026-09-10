@@ -1,6 +1,6 @@
 #include <windows.h>
 #include <windowsx.h>\n#include <commdlg.h>
-#include <cmath>
+#include <cmath>\n#include <algorithm>
 #include <memory>
 #include <string>
 #include <vector>
@@ -50,7 +50,7 @@ POINT GeoToScreen(HWND hwnd, double lat, double lon) {
       top + static_cast<LONG>(height / 2.0 + y)};
 }
 
-GeoPoint ScreenToGeo(HWND hwnd, int x, int y) {
+NavPoint ScreenToGeo(HWND hwnd, int x, int y) {
   RECT rc{};
   GetClientRect(hwnd, &rc);
   const int left = kSidebar;
@@ -226,8 +226,12 @@ void Paint(HWND hwnd) {
   DrawGrid(hwnd, dc, chart);
 
   if (g_chart) {
-    DrawTextAt(dc, chart.left + 18, chart.top + 14,
-               std::wstring(L"CHART: ") + g_chart->Title() + L"  [" + g_chart->FormatName() + L"]",
+    std::wstring chart_label = L"CHART: ";
+    chart_label += g_chart->Title();
+    chart_label += L"  [";
+    chart_label += g_chart->FormatName();
+    chart_label += L"]";
+    DrawTextAt(dc, chart.left + 18, chart.top + 14, chart_label,
                RGB(240, 247, 252), 15, true);
   } else {
     DrawTextAt(dc, chart.left + 18, chart.top + 14,
@@ -296,7 +300,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       RECT rc{}; GetClientRect(hwnd, &rc);
       if (y >= kTopbar && y < rc.bottom - kBottom) {
         if (g_route_mode) {
-          const GeoPoint p = ScreenToGeo(hwnd, x, y);
+          const NavPoint p = ScreenToGeo(hwnd, x, y);
           g_nav.AddWaypoint(p.lat, p.lon);
         } else {
           g_dragging = true;
