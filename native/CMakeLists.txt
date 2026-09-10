@@ -17,6 +17,8 @@ add_executable(EstibordoNavigator WIN32
   src/chart_provider.cpp
   src/kap_chart.cpp
   src/ais.cpp
+  src/gpx_route.cpp
+  src/chart_catalog.cpp
 )
 
 target_include_directories(EstibordoNavigator PRIVATE src)
