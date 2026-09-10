@@ -24,6 +24,11 @@ void NavigationState::AddWaypoint(double lat, double lon) {
   route_.push_back({lat, lon});
 }
 
+void NavigationState::ReplaceRoute(const std::vector<NavPoint>& points) {
+  std::scoped_lock lock(mutex_);
+  route_ = points;
+}
+
 void NavigationState::ClearRoute() {
   std::scoped_lock lock(mutex_);
   route_.clear();
