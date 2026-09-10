@@ -9,6 +9,7 @@
 
 #include "ais.h"
 #include "chart_provider.h"
+#include "gpx_route.h"
 #include "navigation_state.h"
 #include "udp_nmea_receiver.h"
 
@@ -146,6 +147,53 @@ void OpenChartDialog(HWND hwnd) {
   InvalidateRect(hwnd, nullptr, TRUE);
 }
 
+void LoadGpxDialog(HWND hwnd) {
+  wchar_t file[MAX_PATH] = {};
+  OPENFILENAMEW ofn{};
+  ofn.lStructSize = sizeof(ofn);
+  ofn.hwndOwner = hwnd;
+  ofn.lpstrFile = file;
+  ofn.nMaxFile = MAX_PATH;
+  ofn.lpstrFilter = L"GPX Routes (*.gpx)\0*.gpx\0All files (*.*)\0*.*\0";
+  ofn.nFilterIndex = 1;
+  ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
+  ofn.lpstrDefExt = L"gpx";
+  if (!GetOpenFileNameW(&ofn)) return;
+
+  std::vector<NavPoint> points;
+  std::wstring error;
+  if (!LoadRouteGpx(file, points, error)) {
+    MessageBoxW(hwnd, error.c_str(), L"Estibordo Navigator - GPX", MB_OK | MB_ICONERROR);
+    return;
+  }
+  g_nav.ReplaceRoute(points);
+  InvalidateRect(hwnd, nullptr, FALSE);
+}
+
+void SaveGpxDialog(HWND hwnd) {
+  const auto points = g_nav.Route();
+  if (points.empty()) {
+    MessageBoxW(hwnd, L"A rota atual nao possui waypoints.", L"Estibordo Navigator - GPX", MB_OK | MB_ICONINFORMATION);
+    return;
+  }
+  wchar_t file[MAX_PATH] = L"route.gpx";
+  OPENFILENAMEW ofn{};
+  ofn.lStructSize = sizeof(ofn);
+  ofn.hwndOwner = hwnd;
+  ofn.lpstrFile = file;
+  ofn.nMaxFile = MAX_PATH;
+  ofn.lpstrFilter = L"GPX Routes (*.gpx)\0*.gpx\0";
+  ofn.nFilterIndex = 1;
+  ofn.Flags = OFN_OVERWRITEPROMPT;
+  ofn.lpstrDefExt = L"gpx";
+  if (!GetSaveFileNameW(&ofn)) return;
+
+  std::wstring error;
+  if (!SaveRouteGpx(file, points, error)) {
+    MessageBoxW(hwnd, error.c_str(), L"Estibordo Navigator - GPX", MB_OK | MB_ICONERROR);
+  }
+}
+
 void DrawGrid(HWND hwnd, HDC dc, RECT chart) {
   HPEN pen = CreatePen(PS_SOLID, 1, RGB(41, 58, 72));
   HPEN old = static_cast<HPEN>(SelectObject(dc, pen));
@@ -240,7 +288,9 @@ void Paint(HWND hwnd) {
   RECT r3{8, by, kSidebar - 8, by + 48}; DrawButton(dc, r3, L"FOLLOW", g_follow); by += 56;
   RECT r4{8, by, kSidebar - 8, by + 48}; DrawButton(dc, r4, L"CLEAR"); by += 56;
   RECT r5{8, by, kSidebar - 8, by + 48}; DrawButton(dc, r5, L"+ ZOOM"); by += 56;
-  RECT r6{8, by, kSidebar - 8, by + 48}; DrawButton(dc, r6, L"- ZOOM");
+  RECT r6{8, by, kSidebar - 8, by + 48}; DrawButton(dc, r6, L"- ZOOM"); by += 56;
+  RECT r7{8, by, kSidebar - 8, by + 48}; DrawButton(dc, r7, L"GPX IN"); by += 56;
+  RECT r8{8, by, kSidebar - 8, by + 48}; DrawButton(dc, r8, L"GPX OUT");
 
   RECT chart{kSidebar, kTopbar, rc.right - kRightPanel, rc.bottom - kBottom};
   Fill(dc, chart, RGB(13, 28, 39));
@@ -333,6 +383,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         else if (Hit(x, y, 3)) g_nav.ClearRoute();
         else if (Hit(x, y, 4)) g_zoom *= 1.25;
         else if (Hit(x, y, 5)) g_zoom /= 1.25;
+        else if (Hit(x, y, 6)) { LoadGpxDialog(hwnd); return 0; }
+        else if (Hit(x, y, 7)) { SaveGpxDialog(hwnd); return 0; }
         InvalidateRect(hwnd, nullptr, FALSE);
         return 0;
       }
