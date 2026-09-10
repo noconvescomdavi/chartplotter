@@ -1,6 +1,6 @@
 #include "udp_nmea_receiver.h"
 
-#include "navigation_state.h"
+#include "navigation_state.h"\n#include "ais.h"
 #include "nmea_parser.h"
 
 #include <winsock2.h>
@@ -8,7 +8,7 @@
 #include <string>
 #include <string_view>
 
-UdpNmeaReceiver::UdpNmeaReceiver(NavigationState& state) : state_(state) {}
+UdpNmeaReceiver::UdpNmeaReceiver(NavigationState& state, AisStore& ais) : state_(state), ais_(ais) {}
 UdpNmeaReceiver::~UdpNmeaReceiver() { Stop(); }
 
 bool UdpNmeaReceiver::Start(unsigned short port) {
@@ -69,6 +69,8 @@ void UdpNmeaReceiver::Run(unsigned short port) {
         } else if (auto gga = ParseGga(line); gga && gga->valid) {
           state_.UpdateGps(gga->lat, gga->lon, 0.0, 0.0);
           state_.UpdateSatellites(gga->satellites);
+        } else if (auto target = ParseAivdmPosition(line); target && target->position_valid) {
+          ais_.Upsert(*target);
         }
       }
       start = end + 1;
