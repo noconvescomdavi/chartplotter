@@ -1,0 +1,37 @@
+name: Native Windows Chartplotter
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ native-chartplotter ]
+    paths:
+      - 'native/**'
+      - '.github/workflows/native-windows.yml'
+
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure native project
+        run: cmake -S native -B native/build -G "Visual Studio 17 2022" -A x64
+      - name: Build native project
+        run: cmake --build native/build --config Release --parallel
+      - name: Verify executable
+        shell: pwsh
+        run: |
+          if (-not (Test-Path native/build/Release/EstibordoNavigator.exe)) {
+            throw "EstibordoNavigator.exe was not generated."
+          }
+          Get-Item native/build/Release/EstibordoNavigator.exe
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path native/dist | Out-Null
+          Copy-Item native/build/Release/EstibordoNavigator.exe native/dist/EstibordoNavigator.exe
+          Copy-Item native/README.md native/dist/README.md
+          Compress-Archive -Path native/dist/* -DestinationPath Estibordo-Navigator-Native-Windows.zip -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Estibordo-Navigator-Native-Windows
+          path: Estibordo-Navigator-Native-Windows.zip
