@@ -2,7 +2,7 @@
 #include <mutex>
 #include <vector>
 
-struct GeoPoint {
+struct NavPoint {
   double lat{};
   double lon{};
 };
@@ -24,10 +24,10 @@ class NavigationState {
 
   void AddWaypoint(double lat, double lon);
   void ClearRoute();
-  std::vector<GeoPoint> Route() const;
+  std::vector<NavPoint> Route() const;
 
  private:
   mutable std::mutex mutex_;
   NavSnapshot nav_{};
-  std::vector<GeoPoint> route_;
+  std::vector<NavPoint> route_;
 };
