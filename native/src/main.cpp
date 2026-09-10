@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "ais.h"
 #include "chart_provider.h"\n#include "navigation_state.h"
 #include "udp_nmea_receiver.h"
 
@@ -14,8 +15,10 @@ constexpr double kPi = 3.14159265358979323846;
 constexpr int kSidebar = 112;
 constexpr int kTopbar = 54;
 constexpr int kBottom = 52;
+constexpr int kRightPanel = 220;
 
 NavigationState g_nav;
+AisStore g_ais;
 std::unique_ptr<UdpNmeaReceiver> g_receiver;\nstd::unique_ptr<IChartProvider> g_chart;\nstd::wstring g_chart_error;
 
 double g_center_lat = -22.90;
@@ -38,7 +41,7 @@ POINT GeoToScreen(HWND hwnd, double lat, double lon) {
   GetClientRect(hwnd, &rc);
   const int left = kSidebar;
   const int top = kTopbar;
-  const int right = rc.right;
+  const int right = rc.right - kRightPanel;
   const int bottom = rc.bottom - kBottom;
   const double width = static_cast<double>(right - left);
   const double height = static_cast<double>(bottom - top);
@@ -55,7 +58,7 @@ NavPoint ScreenToGeo(HWND hwnd, int x, int y) {
   GetClientRect(hwnd, &rc);
   const int left = kSidebar;
   const int top = kTopbar;
-  const int right = rc.right;
+  const int right = rc.right - kRightPanel;
   const int bottom = rc.bottom - kBottom;
   const double width = static_cast<double>(right - left);
   const double height = static_cast<double>(bottom - top);
@@ -103,7 +106,7 @@ void FitChartToViewport(HWND hwnd) {
   g_center_lon = (e.east + e.west) * 0.5;
   const double lat_span = std::max(0.0001, e.north - e.south);
   const double lon_span = std::max(0.0001, (e.east - e.west) * std::cos(g_center_lat * kPi / 180.0));
-  const double usable_w = std::max(100, rc.right - kSidebar - 40);
+  const double usable_w = std::max(100, rc.right - kSidebar - kRightPanel - 40);
   const double usable_h = std::max(100, rc.bottom - kTopbar - kBottom - 40);
   g_zoom = std::min(usable_w / lon_span, usable_h / lat_span);
   g_zoom = std::clamp(g_zoom, 200.0, 500000.0);
@@ -189,6 +192,22 @@ void DrawGrid(HWND hwnd, HDC dc, RECT chart) {
     SelectObject(dc, old);
     DeleteObject(shipPen);
   }
+
+  const auto targets = g_ais.Snapshot();
+  for (const auto& target : targets) {
+    if (!target.position_valid) continue;
+    POINT p = GeoToScreen(hwnd, target.lat, target.lon);
+    HPEN aisPen = CreatePen(PS_SOLID, 2, RGB(80, 210, 235));
+    old = static_cast<HPEN>(SelectObject(dc, aisPen));
+    Ellipse(dc, p.x - 7, p.y - 7, p.x + 7, p.y + 7);
+    const double a = target.cog_deg * kPi / 180.0;
+    MoveToEx(dc, p.x, p.y, nullptr);
+    LineTo(dc, p.x + static_cast<int>(std::sin(a) * 24.0),
+           p.y - static_cast<int>(std::cos(a) * 24.0));
+    SelectObject(dc, old);
+    DeleteObject(aisPen);
+    DrawTextAt(dc, p.x + 9, p.y - 10, std::to_wstring(target.mmsi), RGB(110, 230, 245), 13);
+  }
 }
 
 void Paint(HWND hwnd) {
@@ -218,7 +237,7 @@ void Paint(HWND hwnd) {
   RECT r5{8, by, kSidebar - 8, by + 48}; DrawButton(dc, r5, L"+ ZOOM"); by += 56;
   RECT r6{8, by, kSidebar - 8, by + 48}; DrawButton(dc, r6, L"- ZOOM");
 
-  RECT chart{kSidebar, kTopbar, rc.right, rc.bottom - kBottom};
+  RECT chart{kSidebar, kTopbar, rc.right - kRightPanel, rc.bottom - kBottom};
   Fill(dc, chart, RGB(13, 28, 39));
   if (g_chart) {
     g_chart->Render(dc, chart, g_center_lat, g_center_lon, g_zoom);
@@ -237,6 +256,22 @@ void Paint(HWND hwnd) {
     DrawTextAt(dc, chart.left + 18, chart.top + 14,
                L"Native chart canvas — clique CHARTS para abrir um .KAP",
                RGB(152, 176, 194), 15);
+  }
+
+  RECT right_panel{rc.right - kRightPanel, kTopbar, rc.right, rc.bottom - kBottom};
+  Fill(dc, right_panel, RGB(11, 22, 33));
+  DrawTextAt(dc, right_panel.left + 14, right_panel.top + 14, L"AIS TARGETS", RGB(230, 240, 248), 17, true);
+  const auto ais_targets = g_ais.Snapshot();
+  DrawTextAt(dc, right_panel.left + 14, right_panel.top + 42,
+             std::to_wstring(ais_targets.size()) + L" targets", RGB(130, 160, 180), 14);
+  int ay = right_panel.top + 72;
+  for (size_t i = 0; i < ais_targets.size() && i < 9; ++i) {
+    const auto& t = ais_targets[i];
+    DrawTextAt(dc, right_panel.left + 14, ay, L"MMSI " + std::to_wstring(t.mmsi), RGB(210, 225, 235), 14, true);
+    wchar_t detail[96];
+    swprintf_s(detail, L"%.1f kn  %03.0f deg", t.sog_kn, t.cog_deg);
+    DrawTextAt(dc, right_panel.left + 14, ay + 19, detail, RGB(120, 175, 195), 13);
+    ay += 48;
   }
 
   RECT bottom{0, rc.bottom - kBottom, rc.right, rc.bottom};
@@ -348,7 +383,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 }  // namespace
 
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
-  g_receiver = std::make_unique<UdpNmeaReceiver>(g_nav);
+  g_receiver = std::make_unique<UdpNmeaReceiver>(g_nav, g_ais);
   g_receiver->Start(10110);
 
   WNDCLASSEXW wc{};
