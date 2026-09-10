@@ -1,12 +1,15 @@
 #include <windows.h>
-#include <windowsx.h>\n#include <commdlg.h>
-#include <cmath>\n#include <algorithm>
+#include <windowsx.h>
+#include <commdlg.h>
+#include <cmath>
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <vector>
 
 #include "ais.h"
-#include "chart_provider.h"\n#include "navigation_state.h"
+#include "chart_provider.h"
+#include "navigation_state.h"
 #include "udp_nmea_receiver.h"
 
 namespace {
@@ -19,7 +22,9 @@ constexpr int kRightPanel = 220;
 
 NavigationState g_nav;
 AisStore g_ais;
-std::unique_ptr<UdpNmeaReceiver> g_receiver;\nstd::unique_ptr<IChartProvider> g_chart;\nstd::wstring g_chart_error;
+std::unique_ptr<UdpNmeaReceiver> g_receiver;
+std::unique_ptr<IChartProvider> g_chart;
+std::wstring g_chart_error;
 
 double g_center_lat = -22.90;
 double g_center_lon = -43.16;
