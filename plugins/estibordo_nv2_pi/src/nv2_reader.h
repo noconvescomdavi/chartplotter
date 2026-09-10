@@ -22,9 +22,14 @@ struct Header {
   std::string edition_stamp;
   MercatorExtent extent;
 };
+struct DictionaryEntry {
+  std::uint16_t tag{};
+  std::string text;
+};
 struct Metadata {
   std::string format, chart_id, title, vendor, attribution;
   std::vector<std::pair<std::uint16_t, std::string>> chart_refs;
+  std::vector<DictionaryEntry> dictionary_entries;
 };
 struct BlockInfo {
   std::uint16_t tag{};
@@ -36,7 +41,7 @@ struct BlockInfo {
 enum class Confidence { Unsupported, Partial, StructuralConfirmed };
 struct Validation {
   Confidence confidence{Confidence::Unsupported};
-  bool magic_ok{}, signature_ok{}, declared_size_ok{}, edition_stamp_ok{}, extent_ok{}, metadata_ok{}, dictionary_block_ok{};
+  bool magic_ok{}, signature_ok{}, declared_size_ok{}, edition_stamp_ok{}, extent_ok{}, metadata_ok{}, dictionary_block_ok{}, dictionary_entries_ok{};
   std::vector<std::string> warnings;
 };
 struct Document {
