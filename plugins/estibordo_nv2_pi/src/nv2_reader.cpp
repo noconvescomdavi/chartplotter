@@ -64,6 +64,24 @@ TopLevelResult ParseTopLevel(const std::vector<std::uint8_t>& b) {
   }
   return r;
 }
+void ParseDictionaryStrings(const std::vector<std::uint8_t>& b, Document& d) {
+  if (!d.dictionary_block) return;
+  const auto& block = *d.dictionary_block;
+  if (block.length < 7 || block.payload_offset + block.length > b.size()) return;
+  // Corpus invariant: the 0x8030 payload starts with a 3-byte prefix followed
+  // by ten printable TLVs tagged 19..28. Stop at the first deviation.
+  std::size_t o = static_cast<std::size_t>(block.payload_offset) + 3;
+  const auto end = static_cast<std::size_t>(block.end_offset);
+  for (std::uint16_t expected = 19; expected <= 28 && o + 4 <= end; ++expected) {
+    const auto tag = U16(b, o), len = U16(b, o + 2);
+    if (tag != expected || len == 0 || o + 4u + len > end) break;
+    const auto* payload = b.data() + o + 4;
+    const auto text = TextPayload(payload, len, false);
+    if (text.empty()) break;
+    d.metadata.dictionary_entries.push_back({tag, text});
+    o += 4u + len;
+  }
+}
 } // namespace
 
 bool MercatorExtent::valid() const noexcept {
@@ -87,15 +105,18 @@ Document Reader::Parse(const std::vector<std::uint8_t>& b) {
   d.header.variant_byte=b[19]; d.header.edition_stamp.assign(reinterpret_cast<const char*>(b.data()+29),16);
   d.header.extent={I32(b,45),I32(b,49),I32(b,53),I32(b,57)};
   auto top=ParseTopLevel(b); d.metadata=std::move(top.metadata); d.dictionary_block=top.dictionary;
+  ParseDictionaryStrings(b, d);
   auto&v=d.validation; v.magic_ok=d.header.magic==kMagic; v.signature_ok=d.header.format_signature==kFormatSignature;
   v.declared_size_ok=d.header.declared_size==b.size(); v.edition_stamp_ok=Digits16(d.header.edition_stamp); v.extent_ok=d.header.extent.valid();
   v.metadata_ok=d.metadata.format=="Marine e-chart"&&!d.metadata.chart_id.empty()&&!d.metadata.title.empty()&&d.metadata.vendor=="Navionics";
   v.dictionary_block_ok=d.dictionary_block.has_value()&&d.dictionary_block->tag==kDictionaryBlockTag&&d.dictionary_block->end_offset<=b.size();
+  v.dictionary_entries_ok=d.metadata.dictionary_entries.size()==10;
   if(!v.magic_ok)v.warnings.emplace_back("magic mismatch"); if(!v.signature_ok)v.warnings.emplace_back("format signature mismatch");
   if(!v.declared_size_ok)v.warnings.emplace_back("declared file size mismatch"); if(!v.edition_stamp_ok)v.warnings.emplace_back("invalid edition stamp");
   if(!v.extent_ok)v.warnings.emplace_back("invalid Web Mercator extent"); if(!v.metadata_ok)v.warnings.emplace_back("stable metadata validation failed");
   if(!v.dictionary_block_ok)v.warnings.emplace_back("0x8030 dictionary block missing or invalid");
-  const bool all=v.magic_ok&&v.signature_ok&&v.declared_size_ok&&v.edition_stamp_ok&&v.extent_ok&&v.metadata_ok&&v.dictionary_block_ok;
+  if(!v.dictionary_entries_ok)v.warnings.emplace_back("confirmed 0x8030 string dictionary incomplete");
+  const bool all=v.magic_ok&&v.signature_ok&&v.declared_size_ok&&v.edition_stamp_ok&&v.extent_ok&&v.metadata_ok&&v.dictionary_block_ok&&v.dictionary_entries_ok;
   v.confidence=all?Confidence::StructuralConfirmed:((v.magic_ok&&v.signature_ok)?Confidence::Partial:Confidence::Unsupported); return d;
 }
 const char* ToString(Confidence c) noexcept { switch(c){case Confidence::StructuralConfirmed:return "STRUCTURAL_CONFIRMED";case Confidence::Partial:return "PARTIAL";default:return "UNSUPPORTED";} }
