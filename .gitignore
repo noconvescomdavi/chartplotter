@@ -1,0 +1,7 @@
+workspace/
+build/
+build-*/
+*.zip
+*.exe
+*.pdb
+.vs/
