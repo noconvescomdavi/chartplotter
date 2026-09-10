@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Estibordo Navigator" xmlns="http://www.topografix.com/GPX/1/1">
+  <wpt lat="-22.9035" lon="-43.1729"><name>ESTIBORDO-START</name></wpt>
+  <wpt lat="-22.9200" lon="-43.1200"><name>WP-01</name></wpt>
+  <wpt lat="-22.9500" lon="-43.0500"><name>WP-02</name></wpt>
+  <rte>
+    <name>Estibordo Demo Route</name>
+    <rtept lat="-22.9035" lon="-43.1729"><name>START</name></rtept>
+    <rtept lat="-22.9200" lon="-43.1200"><name>WP-01</name></rtept>
+    <rtept lat="-22.9500" lon="-43.0500"><name>WP-02</name></rtept>
+  </rte>
+</gpx>
