@@ -33,6 +33,9 @@ jobs:
         working-directory: workspace\OpenCPN
         run: |
           call cache\wx-config.bat
+          set "PATH=%PATH%;%PROGRAMFILES%\Poedit\Gettexttools\bin;%PROGRAMFILES(X86)%\Poedit\Gettexttools\bin"
+          where msgmerge
+          where msgfmt
           if exist build-estibordo rmdir /s /q build-estibordo
           mkdir build-estibordo
           cd build-estibordo
