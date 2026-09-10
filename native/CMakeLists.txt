@@ -30,3 +30,18 @@ if(MSVC)
 endif()
 
 install(TARGETS EstibordoNavigator RUNTIME DESTINATION .)
+
+enable_testing()
+add_executable(EstibordoCoreTests
+  tests/core_tests.cpp
+  src/navigation_state.cpp
+  src/nmea_parser.cpp
+  src/gpx_route.cpp
+  src/ais.cpp
+)
+target_include_directories(EstibordoCoreTests PRIVATE src)
+target_compile_definitions(EstibordoCoreTests PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
+if(MSVC)
+  target_compile_options(EstibordoCoreTests PRIVATE /W4 /permissive- /EHsc)
+endif()
+add_test(NAME native-core COMMAND EstibordoCoreTests)
