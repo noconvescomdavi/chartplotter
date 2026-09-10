@@ -3,12 +3,12 @@
 #include <algorithm>
 #include <cmath>
 #include <fstream>
-#include <limits>
 #include <stdexcept>
 
 namespace estibordo::nv2 {
 namespace {
 constexpr double kEarthRadiusM = 6378137.0;
+constexpr double kPi = 3.14159265358979323846;
 
 std::uint16_t U16(const std::vector<std::uint8_t>& b, std::size_t o) {
   if (o + 2 > b.size()) throw std::runtime_error("NV2 truncated u16");
@@ -34,38 +34,49 @@ bool Digits16(const std::string& s) {
 std::optional<std::size_t> MetadataStart(const std::vector<std::uint8_t>& b) {
   static constexpr char marker[] = "Marine e-chart";
   const auto limit = std::min<std::size_t>(b.size(), 16384);
-  const auto begin = b.begin();
-  auto it = std::search(begin, begin + static_cast<std::ptrdiff_t>(limit), std::begin(marker), std::end(marker) - 1);
-  if (it == begin + static_cast<std::ptrdiff_t>(limit)) return std::nullopt;
-  const auto p = static_cast<std::size_t>(std::distance(begin, it));
-  if (p < 4) return std::nullopt;
-  if (U16(b, p - 4) != 9 || U16(b, p - 2) != 14) return std::nullopt;
+  auto it = std::search(b.begin(), b.begin() + static_cast<std::ptrdiff_t>(limit),
+                        std::begin(marker), std::end(marker) - 1);
+  if (it == b.begin() + static_cast<std::ptrdiff_t>(limit)) return std::nullopt;
+  const auto p = static_cast<std::size_t>(std::distance(b.begin(), it));
+  if (p < 4 || U16(b, p - 4) != 9 || U16(b, p - 2) != 14) return std::nullopt;
   return p - 4;
 }
 void AssignMetadata(std::uint16_t tag, const std::string& value, Metadata& m) {
   switch (tag) {
-    case 9: if (m.format.empty()) m.format = value; break;
-    case 10: if (m.chart_id.empty()) m.chart_id = value; break;
-    case 11: if (m.title.empty()) m.title = value; break;
-    case 12: if (m.vendor.empty()) m.vendor = value; break;
-    case 13: if (m.attribution.empty()) m.attribution = value; break;
+    case 9: m.format = value; break;
+    case 10: m.chart_id = value; break;
+    case 11: m.title = value; break;
+    case 12: m.vendor = value; break;
+    case 13: m.attribution = value; break;
     default: break;
   }
+}
+std::string PrintableSuffix(const std::uint8_t* p, std::size_t n) {
+  std::size_t first = 0;
+  while (first < n && !IsPrintable(p[first])) ++first;
+  std::size_t last = n;
+  while (last > first && (p[last - 1] == 0 || !IsPrintable(p[last - 1]))) --last;
+  return std::string(reinterpret_cast<const char*>(p + first), last - first);
 }
 Metadata ParseStableMetadata(const std::vector<std::uint8_t>& b) {
   Metadata m;
   auto start = MetadataStart(b);
   if (!start) return m;
   std::size_t o = *start;
-  // Tags 9..13 are consecutive and structurally stable in every chart in the
-  // current corpus. Stop at the first unknown/control record rather than guess.
   for (std::uint16_t expected = 9; expected <= 13; ++expected) {
     if (o + 4 > b.size()) break;
     const auto tag = U16(b, o);
     const auto len = U16(b, o + 2);
     if (tag != expected || len == 0 || len > 4096 || o + 4u + len > b.size()) break;
-    if (!std::all_of(b.begin() + static_cast<std::ptrdiff_t>(o + 4), b.begin() + static_cast<std::ptrdiff_t>(o + 4 + len), IsPrintable)) break;
-    std::string value(reinterpret_cast<const char*>(b.data() + o + 4), len);
+    const auto* p = b.data() + o + 4;
+    std::string value;
+    if (tag == 13) {
+      // Real corpus: attribution TLV has a small binary prefix before ASCII.
+      value = PrintableSuffix(p, len);
+    } else {
+      if (!std::all_of(p, p + len, IsPrintable)) break;
+      value.assign(reinterpret_cast<const char*>(p), len);
+    }
     AssignMetadata(tag, value, m);
     o += 4u + len;
   }
@@ -74,13 +85,12 @@ Metadata ParseStableMetadata(const std::vector<std::uint8_t>& b) {
 }  // namespace
 
 bool MercatorExtent::valid() const noexcept {
-  const auto world = static_cast<std::int32_t>(std::ceil(M_PI * kEarthRadiusM));
-  return min_x < max_x && min_y < max_y &&
-         min_x >= -world && max_x <= world && min_y >= -world && max_y <= world;
+  const auto world = static_cast<std::int32_t>(std::ceil(kPi * kEarthRadiusM));
+  return min_x < max_x && min_y < max_y && min_x >= -world && max_x <= world &&
+         min_y >= -world && max_y <= world;
 }
 
 std::pair<double, double> MercatorToLonLat(std::int32_t x, std::int32_t y) {
-  constexpr double kPi = 3.14159265358979323846;
   const double lon = (static_cast<double>(x) / kEarthRadiusM) * 180.0 / kPi;
   const double lat = (2.0 * std::atan(std::exp(static_cast<double>(y) / kEarthRadiusM)) - kPi / 2.0) * 180.0 / kPi;
   return {lon, lat};
@@ -123,7 +133,6 @@ Document Reader::Parse(const std::vector<std::uint8_t>& b) {
   if (!v.edition_stamp_ok) v.warnings.emplace_back("invalid edition stamp");
   if (!v.extent_ok) v.warnings.emplace_back("invalid Web Mercator extent");
   if (!v.metadata_ok) v.warnings.emplace_back("stable metadata validation failed");
-
   const bool all = v.magic_ok && v.signature_ok && v.declared_size_ok && v.edition_stamp_ok && v.extent_ok && v.metadata_ok;
   v.confidence = all ? Confidence::StructuralConfirmed :
       ((v.magic_ok && v.signature_ok) ? Confidence::Partial : Confidence::Unsupported);
@@ -137,5 +146,4 @@ const char* ToString(Confidence c) noexcept {
     default: return "UNSUPPORTED";
   }
 }
-
 }  // namespace estibordo::nv2
