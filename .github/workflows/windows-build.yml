@@ -19,11 +19,12 @@ jobs:
       - name: Checkout custom layer
         uses: actions/checkout@v4
 
-      - name: Prepare upstream and branding
+      - name: Prepare upstream, branding and layout
         shell: pwsh
         run: |
           .\scripts\bootstrap.ps1
           .\scripts\apply-customization.ps1
+          .\scripts\apply-layout.ps1
 
       - name: Install OpenCPN Windows dependencies
         shell: cmd
