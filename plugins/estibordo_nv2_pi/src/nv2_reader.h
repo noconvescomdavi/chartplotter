@@ -4,68 +4,52 @@
 #include <filesystem>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace estibordo::nv2 {
-
 constexpr std::uint32_t kMagic = 0x00FE8050u;
 constexpr std::uint32_t kFormatSignature = 0x081273ABu;
+constexpr std::uint16_t kDictionaryBlockTag = 0x8030u;
 
 struct MercatorExtent {
-  std::int32_t min_x{};
-  std::int32_t min_y{};
-  std::int32_t max_x{};
-  std::int32_t max_y{};
+  std::int32_t min_x{}, min_y{}, max_x{}, max_y{};
   bool valid() const noexcept;
 };
-
 struct Header {
-  std::uint32_t magic{};
-  std::uint32_t format_signature{};
-  std::uint32_t declared_size{};
+  std::uint32_t magic{}, format_signature{}, declared_size{};
   std::uint8_t variant_byte{};
   std::string edition_stamp;
   MercatorExtent extent;
 };
-
 struct Metadata {
-  std::string format;
-  std::string chart_id;
-  std::string title;
-  std::string vendor;
-  std::string attribution;
+  std::string format, chart_id, title, vendor, attribution;
+  std::vector<std::pair<std::uint16_t, std::string>> chart_refs;
 };
-
-enum class Confidence {
-  Unsupported,
-  Partial,
-  StructuralConfirmed
+struct BlockInfo {
+  std::uint16_t tag{};
+  std::uint32_t offset{};
+  std::uint32_t payload_offset{};
+  std::uint32_t length{};
+  std::uint32_t end_offset{};
 };
-
+enum class Confidence { Unsupported, Partial, StructuralConfirmed };
 struct Validation {
   Confidence confidence{Confidence::Unsupported};
-  bool magic_ok{};
-  bool signature_ok{};
-  bool declared_size_ok{};
-  bool edition_stamp_ok{};
-  bool extent_ok{};
-  bool metadata_ok{};
+  bool magic_ok{}, signature_ok{}, declared_size_ok{}, edition_stamp_ok{}, extent_ok{}, metadata_ok{}, dictionary_block_ok{};
   std::vector<std::string> warnings;
 };
-
 struct Document {
   Header header;
   Metadata metadata;
+  std::optional<BlockInfo> dictionary_block;
   Validation validation;
 };
-
 class Reader {
  public:
   static Document ParseFile(const std::filesystem::path& path);
   static Document Parse(const std::vector<std::uint8_t>& bytes);
 };
-
 std::pair<double, double> MercatorToLonLat(std::int32_t x, std::int32_t y);
 const char* ToString(Confidence confidence) noexcept;
-
 }  // namespace estibordo::nv2
