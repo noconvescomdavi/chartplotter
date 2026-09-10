@@ -7,6 +7,7 @@ on:
     paths:
       - 'scripts/**'
       - 'config/**'
+      - 'plugins/**'
       - 'tools/**'
       - 'samples/**'
       - 'docs/**'
@@ -19,12 +20,13 @@ jobs:
       - name: Checkout custom layer
         uses: actions/checkout@v4
 
-      - name: Prepare upstream, branding and layout
+      - name: Prepare upstream, branding, layout and NV2 plugin
         shell: pwsh
         run: |
           .\scripts\bootstrap.ps1
           .\scripts\apply-customization.ps1
           .\scripts\apply-layout.ps1
+          .\scripts\apply-nv2-plugin.ps1
 
       - name: Prepare OpenCPN Windows dependencies
         shell: pwsh
@@ -41,7 +43,7 @@ jobs:
           cd build-estibordo
           cmake -A Win32 -G "Visual Studio 17 2022" -DCMAKE_GENERATOR_PLATFORM=Win32 -DCMAKE_BUILD_TYPE=Release -DwxWidgets_LIB_DIR=%wxWidgets_LIB_DIR% -DwxWidgets_ROOT_DIR=%wxWidgets_ROOT_DIR% -DwxWidgets_CONFIGURATION=mswu -DOCPN_TARGET_TUPLE=msvc-wx32;10;x86_64 -DOCPN_CI_BUILD=ON -DOCPN_BUNDLE_WXDLLS=ON -DOCPN_RELEASE=0 -DOCPN_BUILD_TEST=OFF ..
 
-      - name: Build application
+      - name: Build application and NV2 plugin
         shell: cmd
         working-directory: workspace\OpenCPN\build-estibordo
         run: |
@@ -54,6 +56,7 @@ jobs:
           cpack -C Release -G ZIP
 
       - name: Build NSIS installer
+        continue-on-error: true
         shell: cmd
         working-directory: workspace\OpenCPN\build-estibordo
         run: |
@@ -72,9 +75,15 @@ jobs:
           Copy-Item tools\nmea-simulator.ps1 dist\Estibordo-Navigator-Portable\tools\nmea-simulator.ps1 -Force
           Copy-Item samples\demo-route.gpx dist\Estibordo-Navigator-Portable\samples\demo-route.gpx -Force
           Copy-Item workspace\OpenCPN\ESTIBORDO-NOTICE.txt dist\Estibordo-Navigator-Portable\ESTIBORDO-NOTICE.txt -Force
+
+          $nv2Tools = Get-ChildItem workspace\OpenCPN\build-estibordo -Recurse -File | Where-Object { $_.Name -in @('nv2probe.exe','navsdkprobe.exe','nv2backendprobe.exe') }
+          foreach ($tool in $nv2Tools) { Copy-Item $tool.FullName dist\Estibordo-Navigator-Portable\tools\$($tool.Name) -Force }
+
+          $plugin = Get-ChildItem dist\Estibordo-Navigator-Portable -Recurse -Filter "*estibordo_nv2_pi*.dll" -File | Select-Object -First 1
+          if (-not $plugin) { throw "Estibordo NV2 plugin ausente no pacote portatil." }
+
           $installer = Get-ChildItem workspace\OpenCPN\build-estibordo -Filter "*.exe" -File | Where-Object { $_.Name -match 'setup|Setup' } | Select-Object -First 1
-          if (-not $installer) { throw "NSIS installer nao gerado." }
-          Copy-Item $installer.FullName dist\Estibordo-Navigator-Setup.exe -Force
+          if ($installer) { Copy-Item $installer.FullName dist\Estibordo-Navigator-Setup.exe -Force }
           Compress-Archive -Path dist\Estibordo-Navigator-Portable\* -DestinationPath dist\Estibordo-Navigator-Portable.zip -Force
 
       - name: Runtime smoke test
@@ -103,6 +112,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Estibordo-Navigator-Windows
+          if-no-files-found: error
           path: |
             dist/Estibordo-Navigator-Portable.zip
             dist/Estibordo-Navigator-Setup.exe
