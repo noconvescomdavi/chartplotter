@@ -49,61 +49,14 @@ std::string_view StripChecksum(std::string_view s) {
 }  // namespace
 
 bool NmeaChecksumValid(std::string_view sentence) {
-  if (sentence.empty() || (sentence.front() != '
+  if (sentence.empty() || (sentence.front() != '$' && sentence.front() != '!')) return false;
   const size_t star = sentence.find('*');
   if (star == std::string_view::npos || star + 2 >= sentence.size()) return true;
 
   unsigned char sum = 0;
-  for (size_t i = 1; i < star; ++i) sum ^= static_cast<unsigned char>(sentence[i]);
-
-  const auto hex = sentence.substr(star + 1, 2);
-  unsigned int expected = 0;
-  for (char c : hex) {
-    expected <<= 4;
-    if (c >= '0' && c <= '9') expected |= static_cast<unsigned>(c - '0');
-    else if (c >= 'A' && c <= 'F') expected |= static_cast<unsigned>(c - 'A' + 10);
-    else if (c >= 'a' && c <= 'f') expected |= static_cast<unsigned>(c - 'a' + 10);
-    else return false;
+  for (size_t i = 1; i < star; ++i) {
+    sum ^= static_cast<unsigned char>(sentence[i]);
   }
-  return sum == expected;
-}
-
-std::optional<RmcMessage> ParseRmc(std::string_view sentence) {
-  if (!NmeaChecksumValid(sentence)) return std::nullopt;
-  const auto fields = Split(StripChecksum(sentence), ',');
-  if (fields.size() < 9) return std::nullopt;
-  if (fields[0].find("RMC") == std::string_view::npos) return std::nullopt;
-
-  RmcMessage m;
-  m.valid = fields[2] == "A";
-  if (!m.valid) return m;
-  m.lat = NmeaCoord(fields[3], fields[4]);
-  m.lon = NmeaCoord(fields[5], fields[6]);
-  m.sog_kn = ParseDouble(fields[7]);
-  m.cog_deg = ParseDouble(fields[8]);
-  return m;
-}
-
-std::optional<GgaMessage> ParseGga(std::string_view sentence) {
-  if (!NmeaChecksumValid(sentence)) return std::nullopt;
-  const auto fields = Split(StripChecksum(sentence), ',');
-  if (fields.size() < 8) return std::nullopt;
-  if (fields[0].find("GGA") == std::string_view::npos) return std::nullopt;
-
-  GgaMessage m;
-  m.valid = ParseInt(fields[6]) > 0;
-  if (!m.valid) return m;
-  m.lat = NmeaCoord(fields[2], fields[3]);
-  m.lon = NmeaCoord(fields[4], fields[5]);
-  m.satellites = ParseInt(fields[7]);
-  return m;
-}
- && sentence.front() != '!')) return false;
-  const size_t star = sentence.find('*');
-  if (star == std::string_view::npos || star + 2 >= sentence.size()) return true;
-
-  unsigned char sum = 0;
-  for (size_t i = 1; i < star; ++i) sum ^= static_cast<unsigned char>(sentence[i]);
 
   const auto hex = sentence.substr(star + 1, 2);
   unsigned int expected = 0;
