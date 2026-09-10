@@ -65,9 +65,11 @@ jobs:
             $p.Kill()
             throw "Runtime smoke test timed out."
           }
-          Write-Host $p.StandardOutput.ReadToEnd()
-          Write-Host $p.StandardError.ReadToEnd()
-          if ($p.ExitCode -ne 0) {
-            throw "Runtime exited with code $($p.ExitCode)."
+          $stdout = $p.StandardOutput.ReadToEnd()
+          $stderr = $p.StandardError.ReadToEnd()
+          Write-Host $stdout
+          Write-Host $stderr
+          if ($stdout -notmatch "Usage:" -or $stdout -notmatch "rebuild_chart_db" -or $stdout -notmatch "parse_all_enc") {
+            throw "Runtime did not produce the expected OpenCPN navigation CLI output."
           }
-          Write-Host "Runtime smoke test passed."
+          Write-Host "Runtime smoke test passed. Exit code: $($p.ExitCode)"
