@@ -4,6 +4,7 @@ project(estibordo_nv2_core LANGUAGES CXX)
 add_library(estibordo_nv2_core STATIC
   src/nv2_reader.cpp
   src/navsdk_bridge.cpp
+  src/backend_manager.cpp
 )
 target_include_directories(estibordo_nv2_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_compile_features(estibordo_nv2_core PUBLIC cxx_std_17)
@@ -14,6 +15,7 @@ target_link_libraries(nv2probe PRIVATE estibordo_nv2_core)
 add_executable(navsdkprobe src/navsdk_probe.cpp)
 target_link_libraries(navsdkprobe PRIVATE estibordo_nv2_core)
 
+add_executable(nv2backendprobe src/backend_probe.cpp)
+target_link_libraries(nv2backendprobe PRIVATE estibordo_nv2_core)
+
 enable_testing()
-add_test(NAME nv2_synthetic_valid COMMAND nv2probe ${CMAKE_CURRENT_BINARY_DIR}/fixture-valid.nv2)
-set_tests_properties(nv2_synthetic_valid PROPERTIES DISABLED TRUE)
