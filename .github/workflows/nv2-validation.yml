@@ -30,11 +30,16 @@ jobs:
       - name: Validate accepted fixture
         shell: pwsh
         run: |
-          .\build-nv2\Release\nv2probe.exe .\fixture-valid.nv2
+          & .\build-nv2\Release\nv2probe.exe .\fixture-valid.nv2
           if ($LASTEXITCODE -ne 0) { throw "Valid NV2 fixture was rejected" }
       - name: Validate fail-closed behavior
         shell: pwsh
         run: |
-          .\build-nv2\Release\nv2probe.exe .\fixture-corrupt.nv2
-          if ($LASTEXITCODE -eq 0) { throw "Corrupt NV2 fixture was incorrectly accepted" }
-          Write-Host "Corrupt fixture correctly rejected."
+          $old = $ErrorActionPreference
+          $ErrorActionPreference = 'Continue'
+          & .\build-nv2\Release\nv2probe.exe .\fixture-corrupt.nv2
+          $code = $LASTEXITCODE
+          $ErrorActionPreference = $old
+          if ($code -eq 0) { throw "Corrupt NV2 fixture was incorrectly accepted" }
+          Write-Host "Corrupt fixture correctly rejected with exit code $code."
+          exit 0
