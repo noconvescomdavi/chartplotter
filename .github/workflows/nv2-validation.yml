@@ -1,0 +1,40 @@
+name: NV2 Compatibility Core
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'plugins/estibordo_nv2_pi/**'
+      - 'tools/nv2/**'
+      - 'tests/make_nv2_synthetic_fixture.py'
+      - '.github/workflows/nv2-validation.yml'
+
+jobs:
+  native-parser:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Generate legal synthetic fixtures
+        shell: pwsh
+        run: |
+          python tests/make_nv2_synthetic_fixture.py fixture-valid.nv2
+          python tests/make_nv2_synthetic_fixture.py fixture-corrupt.nv2 --corrupt
+      - name: Configure native NV2 core
+        run: cmake -S plugins/estibordo_nv2_pi -B build-nv2 -G "Visual Studio 17 2022" -A x64
+      - name: Build native NV2 core
+        run: cmake --build build-nv2 --config Release
+      - name: Validate accepted fixture
+        shell: pwsh
+        run: |
+          .\build-nv2\Release\nv2probe.exe .\fixture-valid.nv2
+          if ($LASTEXITCODE -ne 0) { throw "Valid NV2 fixture was rejected" }
+      - name: Validate fail-closed behavior
+        shell: pwsh
+        run: |
+          .\build-nv2\Release\nv2probe.exe .\fixture-corrupt.nv2
+          if ($LASTEXITCODE -eq 0) { throw "Corrupt NV2 fixture was incorrectly accepted" }
+          Write-Host "Corrupt fixture correctly rejected."
